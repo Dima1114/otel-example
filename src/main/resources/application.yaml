@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: otel-example
+
+otel:
+  exporter:
+    otlp:
+      endpoint: http://localhost:4318
+  logs:
+    exporter: none
+  metrics:
+    exporter: none

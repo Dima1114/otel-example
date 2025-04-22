@@ -1,0 +1,51 @@
+services:
+  backend-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      OTEL_RESOURCE_ATTRIBUTES: service.name=otel-example
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_TRACES_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://opentelemetry-collector:4318
+      OTEL_EXPORTER_OTLP_HEADERS: client_id=abc
+    ports:
+      - "8080:8080" # HTTP
+      - "9251:9251" # debug
+  opentelemetry-collector:
+    image: otel/opentelemetry-collector:latest
+    container_name: opentelemetry-collector
+    deploy:
+      resources:
+        limits:
+          memory: 125M
+    restart: unless-stopped
+    volumes:
+      # Override the image's default collector config
+      - ./opentelemetry-collector/config.yml:/etc/otelcol/config.yaml
+    ports:
+      - "4317:4317"   # OTEL gRPC
+      - "4318:4318"   # OTEL HTTP
+      - "8888:8888"   # Opentelemetry-collector metrics
+      - "8889:8889"   # Prometheus exporter
+      - "13133:13133" # Health check
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
